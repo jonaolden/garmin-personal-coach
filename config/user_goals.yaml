@@ -1,0 +1,16 @@
+# User-facing configuration for training goals and constraints
+
+# Goal date (e.g., race day) in YYYY-MM-DD format
+goal_date: 2025-10-26
+
+# Goal distance or type (e.g., "marathon", "5k", "half-marathon")
+goal_type: marathon
+
+# Available training weekdays (e.g., ["Mon", "Wed", "Sat"])
+available_weekdays: ["Monday", "Wednesday", "Saturday"]
+
+# Blocked dates (vacation, travel, etc.) in YYYY-MM-DD format
+blocked_dates:
+  - 2025-07-15
+  - 2025-07-16
+  - 2025-07-17

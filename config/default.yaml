@@ -1,0 +1,13 @@
+overrides_allowed: true
+ramp_percentage_max: 0.10
+ctl_atl_ratio_max: 1.3
+hrv_drop_zscore: -1.0
+sleep_min_hours: 6
+llm_volume_change_max: 0.20
+retry:
+  max_attempts: 5
+  base: 2
+  jitter: true
+sync_daily_cron: "0 1 * * *"
+sync_catchup_cron: "0 10 * * *"
+adapt_weekly_cron: "0 17 * * SUN"

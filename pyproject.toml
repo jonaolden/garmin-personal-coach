@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "garmin-personal-coach"
+version = "0.1.0"
+description = "Automated Garmin Training Pipeline"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+prefect = "^2.0" # Use Prefect 2.x or 3.x based on preference/compatibility
+pandas = "^2.0"
+duckdb = "^0.10.0"
+requests = "^2.31.0"
+pyyaml = "^6.0.1"
+pydantic = "^2.0"
+openai = "^1.0" # For LLM interaction
+python-dotenv = "^1.0.0" # For environment variables
+garmindb = "^3.6.3"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0"
+black = "^24.0" # For formatting
+isort = "^5.0" # For sorting imports
+flake8 = "^7.0" # For linting
+mypy = "^1.0" # For type checking
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
