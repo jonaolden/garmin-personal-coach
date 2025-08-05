@@ -67,7 +67,7 @@ schedulePlan:
     hrv_zscore = task(analytics.compute_hrv_zscore)(df)
     # Combine metrics - assuming evaluate_flags can handle a combined dictionary or similar structure
     metrics = {**ctl_atl_metrics, "hrv_zscore": hrv_zscore}
-    flags = task(analytics.evaluate_flags)(metrics)
+    flags = task(analytics.evaluate_flags)(metrics, settings)
 
     if flags:
         print("Flags detected, proposing revision.")
