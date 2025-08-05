@@ -7,8 +7,8 @@ based on configured thresholds.
 
 import pandas as pd
 import numpy as np
-from typing import Dict, Any, List
-from src.settings import Settings # Import Settings class
+from typing import Dict, Any, Optional
+from src.settings import Settings  # Import Settings class
 
 # Constants for CTL/ATL calculation (days)
 CTL_DAYS = 42
@@ -43,42 +43,42 @@ def compute_ctl_atl(activities_df: pd.DataFrame) -> Dict[str, Any]:
     print(f"Analytics compute_ctl_atl: Computed CTL={latest_metrics['ctl']:.2f}, ATL={latest_metrics['atl']:.2f}, TSB={latest_metrics['tsb']:.2f}")
     return latest_metrics
 
-def compute_hrv_zscore(hrv_data: List[Dict[str, Any]]) -> Optional[float]:
-    """
-    Computes the HRV z-score based on a rolling baseline.
-    Assumes hrv_data is a list of dictionaries with a 'hrv' key (numeric).
+def compute_hrv_zscore(hrv_df: pd.DataFrame, window: int = 30) -> Optional[float]:
+    """Compute the latest HRV z-score.
+
+    The input must be a :class:`pandas.DataFrame` containing an ``hrv`` column.  A
+    rolling mean and standard deviation are calculated over ``window`` samples to
+    form the baseline and the z-score of the most recent value is returned.  If
+    there are fewer than ``window`` data points or the required column is
+    missing, ``None`` is returned.
+
     Args:
-        hrv_data (List[Dict[str, Any]]): List of dictionaries containing HRV data.
-    Returns: Optional[float]: The latest HRV z-score, or None if insufficient data.
+        hrv_df: DataFrame with at least an ``hrv`` column.
+        window: Number of samples to use for the rolling baseline (default 30).
+
+    Returns:
+        The latest HRV z-score or ``None`` when the computation cannot be
+        performed.
     """
-    if not hrv_data:
-        print("Analytics compute_hrv_zscore: Input HRV data is empty.")
+    if hrv_df.empty:
+        print("Analytics compute_hrv_zscore: Input DataFrame is empty.")
         return None
 
-    # Convert list of dicts to DataFrame
-    hrv_df = pd.DataFrame(hrv_data)
-
-    if 'hrv' not in hrv_df.columns:
-         print("Analytics compute_hrv_zscore: Input HRV data missing 'hrv' column.")
-         return None
-
-    # Calculate rolling mean and standard deviation (e.g., 30-day rolling window)
-    window_size = 30 # TODO: Make window size configurable via settings
-    if len(hrv_df) < window_size:
-        print(f"Analytics compute_hrv_zscore: Insufficient data ({len(hrv_df)} points) for {window_size}-day rolling window.")
+    if "hrv" not in hrv_df.columns:
+        print("Analytics compute_hrv_zscore: Input DataFrame missing 'hrv' column.")
         return None
 
-    hrv_df['hrv_mean'] = hrv_df['hrv'].rolling(window=window_size).mean()
-    hrv_df['hrv_std'] = hrv_df['hrv'].rolling(window=window_size).std()
+    if len(hrv_df) < window:
+        print(
+            f"Analytics compute_hrv_zscore: Insufficient data ({len(hrv_df)} points) for {window}-day rolling window."
+        )
+        return None
 
-    # Calculate z-score
-    hrv_df['hrv_zscore'] = (hrv_df['hrv'] - hrv_df['hrv_mean']) / hrv_df['hrv_std']
+    z = (hrv_df["hrv"] - hrv_df["hrv"].rolling(window).mean()) / hrv_df["hrv"].rolling(window).std(ddof=0)
 
-    # Get the latest z-score
-    latest_zscore = hrv_df['hrv_zscore'].iloc[-1]
-
+    latest_zscore = z.iloc[-1]
     print(f"Analytics compute_hrv_zscore: Latest HRV z-score: {latest_zscore:.2f}")
-    return latest_zscore
+    return float(latest_zscore)
 
 
 def evaluate_flags(metrics: Dict[str, Any], settings: Settings) -> Dict[str, Any]:
