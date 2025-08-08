@@ -6,22 +6,41 @@ to propose training plan revisions.
 """
 
 import json
-from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field, ValidationError
+from typing import Any, Dict, List, Optional
+
 from openai import OpenAI
-from src.settings import Settings # Import Settings class
-from src.monitoring import log_event # Assuming monitoring module is available
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+from src.monitoring import log_event  # Assuming monitoring module is available
+from src.settings import Settings  # Import Settings class
+
 
 # Pydantic model for a single JSON Patch operation
 class JsonPatchOperation(BaseModel):
-    op: str = Field(..., description="The type of operation (e.g., 'add', 'remove', 'replace', 'move', 'copy', 'test')")
+    op: str = Field(
+        ...,
+        description="The type of operation (e.g., 'add', 'remove', 'replace', 'move', 'copy', 'test')",
+    )
     path: str = Field(..., description="The JSON Pointer to the target location")
-    value: Optional[Any] = Field(None, description="The value to add, replace, or test (for 'add', 'replace', 'test' operations)")
-    _from: Optional[str] = Field(None, alias='from', description="The JSON Pointer to the source location (for 'move', 'copy' operations)")
+    value: Optional[Any] = Field(
+        None,
+        description="The value to add, replace, or test (for 'add', 'replace', 'test' operations)",
+    )
+    from_: Optional[str] = Field(
+        None,
+        alias="from",
+        description="The JSON Pointer to the source location (for 'move', 'copy' operations)",
+    )
+    model_config = ConfigDict(populate_by_name=True)
+
 
 # Pydantic model for the expected LLM response (a list of JSON Patch operations)
 class TrainingPlanRevision(BaseModel):
-    revision: List[JsonPatchOperation] = Field(..., description="A list of RFC6902 JSON Patch operations to apply to the training plan.")
+    revision: List[JsonPatchOperation] = Field(
+        ...,
+        description="A list of RFC6902 JSON Patch operations to apply to the training plan.",
+    )
+
 
 def build_prompt(current_plan_yaml: str, flags: Dict[str, Any]) -> str:
     """
@@ -67,7 +86,10 @@ Example Response:
 """
     return prompt
 
-def propose_revision(current_plan_yaml: str, flags: Dict[str, Any], settings: Settings) -> str:
+
+def propose_revision(
+    current_plan_yaml: str, flags: Dict[str, Any], settings: Settings
+) -> str:
     """
     Proposes a training plan revision based on the current plan and analytics flags using an LLM.
     Args:
@@ -78,12 +100,14 @@ def propose_revision(current_plan_yaml: str, flags: Dict[str, Any], settings: Se
     """
     log_event("llm_propose_revision_start", {"flags": flags})
 
-    if not settings.openai_api_key: # Assuming openai_api_key is in settings
-        log_event("llm_propose_revision_error", {"error": "OpenAI API key not configured."})
+    if not settings.openai_api_key:  # Assuming openai_api_key is in settings
+        log_event(
+            "llm_propose_revision_error", {"error": "OpenAI API key not configured."}
+        )
         print("Error: OpenAI API key not configured.")
         return "[]"
 
-    client = OpenAI(api_key=settings.openai_api_key) # Initialize OpenAI client
+    client = OpenAI(api_key=settings.openai_api_key)  # Initialize OpenAI client
 
     prompt = build_prompt(current_plan_yaml, flags)
     print("LLM prompt built.")
@@ -92,12 +116,15 @@ def propose_revision(current_plan_yaml: str, flags: Dict[str, Any], settings: Se
     try:
         # TODO: Make model and other parameters configurable via settings
         response = client.chat.completions.create(
-            model="gpt-4o-mini", # Or another suitable model
+            model="gpt-4o-mini",  # Or another suitable model
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that provides training plan revisions in RFC6902 JSON Patch format."},
-                {"role": "user", "content": prompt}
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant that provides training plan revisions in RFC6902 JSON Patch format.",
+                },
+                {"role": "user", "content": prompt},
             ],
-            response_format={"type": "json_object"} # Request JSON object output
+            response_format={"type": "json_object"},  # Request JSON object output
         )
 
         # Assuming the response structure is response.choices[0].message.content
@@ -116,12 +143,18 @@ def propose_revision(current_plan_yaml: str, flags: Dict[str, Any], settings: Se
             return json_patch
 
         except json.JSONDecodeError as e:
-            log_event("llm_propose_revision_json_decode_error", {"error": str(e), "response": llm_output_str})
+            log_event(
+                "llm_propose_revision_json_decode_error",
+                {"error": str(e), "response": llm_output_str},
+            )
             print(f"Error decoding LLM response JSON: {e}")
             print("Raw LLM response:", llm_output_str)
             return "[]"
         except ValidationError as e:
-            log_event("llm_propose_revision_validation_error", {"error": str(e), "response": llm_output_str})
+            log_event(
+                "llm_propose_revision_validation_error",
+                {"error": str(e), "response": llm_output_str},
+            )
             print(f"LLM response validation failed: {e}")
             print("Raw LLM response:", llm_output_str)
             return "[]"
@@ -130,6 +163,7 @@ def propose_revision(current_plan_yaml: str, flags: Dict[str, Any], settings: Se
         log_event("llm_propose_revision_api_error", {"error": str(e)})
         print(f"Error calling OpenAI API: {e}")
         return "[]"
+
 
 # Pydantic models, OpenAI integration, prompt building, validation, and JSON Patch formatting implemented.
 # TODO: Add openai_api_key to settings model and load it.
